@@ -1,0 +1,48 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Voters List - Admin{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Registered Voters</h2>
+    <p style="color: var(--text-muted);">A comprehensive list of all registered voters.</p>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead style="background-color: rgba(255,255,255,0.05);">
+            <tr>
+                <th style="padding: 1rem;">Full Name</th>
+                <th style="padding: 1rem;">Voter ID</th>
+                <th style="padding: 1rem;">Email Address</th>
+                <th style="padding: 1rem;">Verified</th>
+                <th style="padding: 1rem;">Elections Joined</th>
+                <th style="padding: 1rem;">Joined At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in voters %}
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem; font-weight: 600;">{{ v.full_name }}</td>
+                <td style="padding: 1rem; color: var(--primary);">{{ v.voter_id }}</td>
+                <td style="padding: 1rem;">{{ v.email }}</td>
+                <td style="padding: 1rem;">
+                    {% if v.is_verified %}
+                        <span style="color: var(--success);"><i class="fas fa-check-circle"></i> Yes</span>
+                    {% else %}
+                        <span style="color: var(--danger);"><i class="fas fa-times-circle"></i> No</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 1rem; text-align: center;">{{ v.joined_count }}</td>
+                <td style="padding: 1rem; color: var(--text-muted);">{{ v.created_at.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+            {% if not voters %}
+            <tr>
+                <td colspan="6" style="padding: 3rem; text-align: center; color: var(--text-muted);">No registered voters yet.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

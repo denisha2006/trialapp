@@ -1,0 +1,150 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Live Monitor - AuthVote Admin{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; flex-direction: column; gap: 2rem;">
+    <!-- Mission Control Header -->
+    <div style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--primary);">
+        <div>
+            <h2 style="font-family: monospace; letter-spacing: 2px; text-transform: uppercase; font-size: 1.5rem;">Anti-Fraud Mission Control</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; font-family: monospace;">System Status: <span style="color: var(--success); font-weight: bold;">[ ANALYZING REAL-TIME TRAFFIC ]</span></p>
+        </div>
+        <div style="display: flex; gap: 2rem;">
+            <div style="text-align: right;">
+                <p style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Active Sessions (1h)</p>
+                <h4 style="font-family: monospace; font-size: 1.25rem;">{{ active_sessions }}</h4>
+            </div>
+            <div style="text-align: right;">
+                <p style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Flagged Events</p>
+                <h4 style="font-family: monospace; font-size: 1.25rem; color: var(--danger);">{{ "%02d"|format(flagged_ips) }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Activity Table -->
+    <div class="card" style="padding: 0; overflow: hidden; border-color: rgba(59, 130, 246, 0.3);">
+        <div style="padding: 1rem; background-color: rgba(59, 130, 246, 0.05); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;"><i class="fas fa-stream"></i> Real-Time Audit Log</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">POLLING: 10s</span>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: monospace; font-size: 0.85rem;">
+            <thead style="background-color: rgba(255,255,255,0.02);">
+                <tr>
+                    <th style="padding: 1rem;">User ID</th>
+                    <th style="padding: 1rem;">Action</th>
+                    <th style="padding: 1rem;">Description</th>
+                    <th style="padding: 1rem;">Timestamp</th>
+                    <th style="padding: 1rem;">Risk Level</th>
+                </tr>
+            </thead>
+            <tbody id="traffic-feed">
+                {% for log in logs %}
+                <tr style="border-bottom: 1px solid var(--border); background-color: {% if log.anomaly > 0.6 %}rgba(239, 68, 68, 0.05){% else %}transparent{% endif %};">
+                    <td style="padding: 1rem; color: var(--primary);">{{ log.voter_id if log.voter_id else 'SYSTEM' }}</td>
+                    <td style="padding: 1rem;">
+                        <span style="color: {% if log.anomaly > 0.6 %}var(--danger){% else %}var(--success){% endif %};">[{{ log.action }}]</span>
+                    </td>
+                    <td style="padding: 1rem; color: var(--text-muted); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ log.description }}</td>
+                    <td style="padding: 1rem;">{{ log.timestamp.strftime('%H:%M:%S') }}</td>
+                    <td style="padding: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 100px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                <div style="width: {{ log.anomaly * 100 }}%; height: 100%; background: {% if log.anomaly > 0.6 %}var(--danger){% else %}var(--success){% endif %};"></div>
+                            </div>
+                            <span style="font-weight: bold; color: {% if log.anomaly > 0.6 %}var(--danger){% else %}var(--text-white){% endif %};">{{ "%.2f"|format(log.anomaly) }}</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Election Standings Graph -->
+    <div class="card" style="border-color: rgba(59, 130, 246, 0.2); background: linear-gradient(145deg, var(--bg-card), rgba(15, 23, 42, 0.9));">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;"><i class="fas fa-chart-bar"></i> Live Election Standings: {{ results.title }}</h3>
+            <span style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">[ REAL-TIME DATA TRANSMISSION ]</span>
+        </div>
+        <div style="height: 300px; position: relative;">
+            {% if results.labels %}
+                <canvas id="resultsChart"></canvas>
+            {% else %}
+                <div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-family: monospace;">
+                    [ NO ELECTION DATA AVAILABLE ]
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes scanline {
+        0% { top: 0; opacity: 0; }
+        50% { opacity: 1; }
+        100% { top: 100%; opacity: 0; }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if results.labels %}
+    const ctx = document.getElementById('resultsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ results.labels | tojson }},
+            datasets: [{
+                label: 'Votes',
+                data: {{ results.counts | tojson }},
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2,
+                borderRadius: 5,
+                hoverBackgroundColor: 'rgba(59, 130, 246, 0.8)'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { 
+                        color: '#94a3b8',
+                        stepSize: 1,
+                        precision: 0
+                    }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { 
+                        color: '#f8fafc', 
+                        font: { size: 13, weight: 'bold' } 
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: '#3b82f6',
+                    bodyColor: '#fff',
+                    borderColor: '#334155',
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Refresh page every 10 seconds for real-time updates
+    setTimeout(function() {
+        window.location.reload();
+    }, 10000);
+</script>
+
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}System Settings - AuthVote Admin{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; flex-direction: column; gap: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>System Settings</h2>
+        <p style="color: var(--text-muted);">Manage global configurations and role permissions.</p>
+    </div>
+
+    <!-- Phase Control Grid -->
+    <div class="card">
+        <h3>Manual Phase Control</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Override automated phase transitions for active elections.</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+            {% for e in elections %}
+            <div style="padding: 1.25rem; border: 1px solid var(--border); border-radius: 8px; background-color: rgba(255,255,255,0.02);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="font-size: 1rem;">{{ e.title }}</h4>
+                    <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: rgba(59,130,246,0.1); color: var(--primary);">
+                        {{ e.status | upper }}
+                    </span>
+                </div>
+                <form action="{{ url_for('admin.update_status', eid=e.id) }}" method="POST" style="display: flex; gap: 0.5rem;">
+                    <select name="status" class="form-control" style="flex: 1; padding: 0.4rem 0.8rem; font-size: 0.85rem; height: auto;">
+                        <option value="draft" {% if e.status == 'draft' %}selected{% endif %}>Draft</option>
+                        <option value="pre_vote" {% if e.status == 'pre_vote' %}selected{% endif %}>Pre-Vote</option>
+                        <option value="active" {% if e.status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="closed" {% if e.status == 'closed' %}selected{% endif %}>Closed</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Update</button>
+                </form>
+            </div>
+            {% endfor %}
+            {% if not elections %}
+            <p style="color: var(--text-muted); text-align: center; padding: 2rem;">No elections found to configure.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Global Params -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <div class="card">
+            <h3>Role Management</h3>
+            <div style="margin-top: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>Admin Accounts</span>
+                    <span style="font-weight: bold; color: var(--primary);">02</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
+                    <span>Voter Registrations</span>
+                    <span style="font-weight: bold; color: var(--success);">Enabled</span>
+                </div>
+                <button class="btn btn-outline" style="width: 100%; border-color: var(--danger); color: var(--danger);">Disable New Registrations</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Email & Security</h3>
+            <div style="margin-top: 1.5rem;">
+                 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>OTP Expiry</span>
+                    <span style="font-weight: bold;">10 Minutes</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>Token Hashing</span>
+                    <span style="font-weight: bold;">SHA-256</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>SMTP Service</span>
+                    <span style="color: var(--warning);"><i class="fas fa-exclamation-triangle"></i> Mock Mode</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

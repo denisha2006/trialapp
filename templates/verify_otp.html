@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Email - AuthVote{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <h2 style="text-align: center; margin-bottom: 1rem;">Verify Email</h2>
+        <p style="text-align: center; margin-bottom: 2rem; color: var(--text-muted);">Please enter the 6-digit code sent to <strong>{{ email }}</strong>.</p>
+        
+        <form action="{{ url_for('auth.verify_otp') }}" method="POST">
+            <div class="form-group">
+                <label for="otp">OTP Code</label>
+                <input type="text" name="otp" id="otp" class="form-control" required placeholder="123456" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Verify</button>
+        </form>
+        
+        <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted);">
+            Didn't receive the code? <a href="#" style="color: var(--primary); text-decoration: none;">Resend OTP</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

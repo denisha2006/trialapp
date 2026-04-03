@@ -1,0 +1,65 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Create Election - Admin{% endblock %}
+
+{% block admin_content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <h2 style="margin-bottom: 2rem;">Create New Election</h2>
+    <div class="card">
+        <form action="{{ url_for('admin.create_election') }}" method="POST">
+            <div class="form-group">
+                <label for="title">Election Title</label>
+                <input type="text" name="title" id="title" class="form-control" required placeholder="e.g. 2026 Presidential Election">
+            </div>
+            <div class="form-group">
+                <label for="description">Description (Optional)</label>
+                <textarea name="description" id="description" class="form-control" rows="4" placeholder="Brief details about the election..."></textarea>
+            </div>
+            <div class="form-row" style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1; min-width: 320px;">
+                    <label for="start_date">Start Date & Time</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <input type="date" name="start_date" id="start_date" class="form-control" style="width: 150px; flex: none;" required>
+                        <div style="flex: 1; display: flex; flex-direction: column;">
+                            <!-- Unified Time & Period Box -->
+                            <div style="display: flex; align-items: center; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; padding: 0 0.4rem; height: 42px; width: 170px;">
+                                <input type="time" name="start_time" id="start_time" 
+                                       style="border: none; background: transparent; color: white; width: 85px; height: 100%; outline: none; font-size: 0.9rem;" required>
+                                <div style="width: 1px; height: 1.2rem; background: var(--border); margin: 0 0.3rem;"></div>
+                                <select name="start_period" style="border: none; background: transparent; color: white; height: 100%; outline: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; flex: 1;">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <small style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-top: 0.2rem;">Select Time & Period</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 320px;">
+                    <label for="end_date">End Date & Time</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <input type="date" name="end_date" id="end_date" class="form-control" style="width: 150px; flex: none;" required>
+                        <div style="flex: 1; display: flex; flex-direction: column;">
+                            <!-- Unified Time & Period Box -->
+                            <div style="display: flex; align-items: center; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; padding: 0 0.4rem; height: 42px; width: 170px;">
+                                <input type="time" name="end_time" id="end_time" 
+                                       style="border: none; background: transparent; color: white; width: 85px; height: 100%; outline: none; font-size: 0.9rem;" required>
+                                <div style="width: 1px; height: 1.2rem; background: var(--border); margin: 0 0.3rem;"></div>
+                                <select name="end_period" style="border: none; background: transparent; color: white; height: 100%; outline: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; flex: 1;">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <small style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-top: 0.2rem;">Select Time & Period</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Save as Draft</button>
+                <a href="{{ url_for('admin.elections') }}" class="btn btn-outline" style="flex: 1; text-align: center;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; gap: 2rem; min-height: 80vh;">
+    <!-- Sidebar -->
+    <aside style="width: 250px; flex-shrink: 0; background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1rem;">
+
+        <nav>
+            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+
+                <li>
+                    <a href="{{ url_for('admin.dashboard') }}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; color: {% if request.endpoint == 'admin.dashboard' %}var(--primary){% else %}var(--text-white){% endif %}; background: {% if request.endpoint == 'admin.dashboard' %}rgba(59, 130, 246, 0.1){% else %}transparent{% endif %};">
+                        <i class="fas fa-chart-line"></i> Overview
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('admin.elections') }}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; color: {% if 'election' in request.endpoint %}var(--primary){% else %}var(--text-white){% endif %}; background: {% if 'election' in request.endpoint %}rgba(59, 130, 246, 0.1){% else %}transparent{% endif %};">
+                        <i class="fas fa-vote-yea"></i> Manage Elections
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('admin.approvals') }}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; color: {% if request.endpoint == 'admin.approvals' %}var(--primary){% else %}var(--text-white){% endif %}; background: {% if request.endpoint == 'admin.approvals' %}rgba(59, 130, 246, 0.1){% else %}transparent{% endif %};">
+                        <i class="fas fa-user-check"></i> Voter Requests
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('admin.live_monitor') }}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; color: {% if request.endpoint == 'admin.live_monitor' %}var(--primary){% else %}var(--text-white){% endif %}; background: {% if request.endpoint == 'admin.live_monitor' %}rgba(59, 130, 246, 0.1){% else %}transparent{% endif %};">
+                        <i class="fas fa-satellite-dish"></i> Live Monitor
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('admin.voters') }}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; color: {% if request.endpoint == 'admin.voters' %}var(--primary){% else %}var(--text-white){% endif %}; background: {% if request.endpoint == 'admin.voters' %}rgba(59, 130, 246, 0.1){% else %}transparent{% endif %};">
+                        <i class="fas fa-users"></i> Voters
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('admin.settings') }}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; color: {% if request.endpoint == 'admin.settings' %}var(--primary){% else %}var(--text-white){% endif %}; background: {% if request.endpoint == 'admin.settings' %}rgba(59, 130, 246, 0.1){% else %}transparent{% endif %};">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Admin Content -->
+    <main style="flex: 1;">
+        {% block admin_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

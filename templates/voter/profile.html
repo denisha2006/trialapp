@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - {{ user.full_name }}{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 3rem; margin-top: 2rem;">
+    <div>
+        <div class="card" style="text-align: center;">
+            <div style="width: 120px; height: 120px; border-radius: 50%; background: var(--primary); margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: white; border: 4px solid var(--border);">
+                {{ user.full_name[0] }}
+            </div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.2rem;">{{ user.full_name }}</h3>
+            <p style="color: var(--primary); font-weight: 600; font-size: 0.9rem; margin-bottom: 2rem;">{{ user.role | upper }}</p>
+            
+            <div style="text-align: left; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Voter ID</p>
+                    <p style="font-weight: 600;">{{ user.voter_id }}</p>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Email Address</p>
+                    <p style="font-weight: 600;">{{ user.email }}</p>
+                </div>
+                <div>
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Joined At</p>
+                    <p style="font-weight: 600;">{{ user.created_at.strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+            
+            <a href="#" class="btn btn-outline" style="width: 100%; margin-top: 2rem; font-size: 0.85rem;">Edit Profile</a>
+        </div>
+    </div>
+
+    <div>
+        <h3>Election Participation History</h3>
+        <div class="card" style="padding: 0; margin-top: 1.5rem; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="background-color: rgba(255,255,255,0.05);">
+                    <tr>
+                        <th style="padding: 1rem;">Election Title</th>
+                        <th style="padding: 1rem;">Your Status</th>
+                        <th style="padding: 1rem;">Phase</th>
+                        <th style="padding: 1rem;">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in participation_history %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1rem; font-weight: 600;">{{ h.title }}</td>
+                        <td style="padding: 1rem;">
+                            <span style="font-size: 0.8rem; font-weight: 500; color: {% if h.participation_status == 'approved' %}var(--success){% elif h.participation_status == 'pending' %}var(--warning){% else %}var(--danger){% endif %};">
+                                {{ h.participation_status | upper }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem;">
+                            <span style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 10px; background: rgba(255,255,255,0.05); color: var(--text-muted);">
+                                {{ h.election_status | upper }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem;">{{ h.requested_at.strftime('%m/%d/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not participation_history %}
+                    <tr>
+                        <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">You have not participated in any elections yet.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

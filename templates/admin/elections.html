@@ -1,0 +1,46 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Manage Elections - Admin{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Manage Elections</h2>
+    <a href="{{ url_for('admin.create_election') }}" class="btn btn-primary">Create New Election</a>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead style="background-color: rgba(255,255,255,0.05);">
+            <tr>
+                <th style="padding: 1rem;">Election Title</th>
+                <th style="padding: 1rem;">Start Date</th>
+                <th style="padding: 1rem;">End Date</th>
+                <th style="padding: 1rem;">Status</th>
+                <th style="padding: 1rem;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in elections %}
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem;">{{ e.title }}</td>
+                <td style="padding: 1rem;">{{ e.start_date.strftime('%Y-%m-%d %H:%M') if e.start_date else 'N/A' }}</td>
+                <td style="padding: 1rem;">{{ e.end_date.strftime('%Y-%m-%d %H:%M') if e.end_date else 'N/A' }}</td>
+                <td style="padding: 1rem;">
+                    <form action="{{ url_for('admin.update_status', eid=e.id) }}" method="POST">
+                        <select name="status" class="form-control" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; height: auto;" onchange="this.form.submit()">
+                            <option value="draft" {% if e.status == 'draft' %}selected{% endif %}>Draft</option>
+                            <option value="pre_vote" {% if e.status == 'pre_vote' %}selected{% endif %}>Pre-Vote</option>
+                            <option value="active" {% if e.status == 'active' %}selected{% endif %}>Active</option>
+                            <option value="closed" {% if e.status == 'closed' %}selected{% endif %}>Closed</option>
+                        </select>
+                    </form>
+                </td>
+                <td style="padding: 1rem; display: flex; gap: 0.5rem;">
+                    <a href="{{ url_for('admin.candidates', eid=e.id) }}" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Candidates</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Admin Dashboard - AuthVote{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Admin Dashboard</h2>
+    <a href="{{ url_for('admin.create_election') }}" class="btn btn-primary">Create Election</a>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 3rem;">
+    <div class="card" style="text-align: center;">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Total Registered Voters</p>
+        <h3 style="font-size: 2rem;">{{ total_voters }}</h3>
+    </div>
+    <div class="card" style="text-align: center;">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Total Votes Cast</p>
+        <h3 style="font-size: 2rem;">{{ total_votes }}</h3>
+    </div>
+    <div class="card" style="text-align: center;">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Active Elections</p>
+        <h3 style="font-size: 2rem; color: var(--success);">{{ active_elections_count }}</h3>
+    </div>
+    <div class="card" style="text-align: center;">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Pending Approvals</p>
+        <h3 style="font-size: 2rem; color: var(--warning);">{{ pending_approvals }}</h3>
+    </div>
+</div>
+
+<section>
+    <h3>Recent Elections</h3>
+    <div class="card" style="padding: 0; margin-top: 1rem; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background-color: rgba(255,255,255,0.05);">
+                <tr>
+                    <th style="padding: 1rem;">Election Title</th>
+                    <th style="padding: 1rem;">Status</th>
+                    <th style="padding: 1rem;">Created At</th>
+                    <th style="padding: 1rem;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in recent_elections %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 1rem;">{{ e.title }}</td>
+                    <td style="padding: 1rem;">
+                        <span style="font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 20px; background: rgba(59,130,246,0.1); color: var(--primary);">
+                            {{ e.status | upper }}
+                        </span>
+                    </td>
+                    <td style="padding: 1rem; color: var(--text-muted);">{{ e.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td style="padding: 1rem;">
+                        <a href="{{ url_for('admin.candidates', eid=e.id) }}" style="color: var(--primary); text-decoration: none;">Manage</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Home - AuthVote{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Your Voice, Your Power.</h1>
+    <p>Experience the future of democracy with our secure, transparent, and easy-to-use online voting platform. Cast your vote from anywhere in the world.</p>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Get Started</a>
+        <a href="#" class="btn btn-outline">Learn More</a>
+    </div>
+</div>
+
+<div style="max-width: 800px; margin: 4rem auto; text-align: center;">
+    <div class="card" style="margin-bottom: 2rem; border-color: var(--primary);">
+        <i class="fas fa-vote-yea" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+        <h3>No Active Election</h3>
+        <p style="color: var(--text-muted);">Check back later for upcoming elections.</p>
+    </div>
+    <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.8;">AuthVote is built with the highest standards of security and transparency. Every vote is encrypted and verifiable, ensuring a fair and democratic process.</p>
+</div>
+{% endblock %}

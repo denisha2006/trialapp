@@ -1,0 +1,53 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Manage Candidates - {{ election.title }}{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Candidates for {{ election.title }}</h2>
+    <a href="{{ url_for('admin.elections') }}" class="btn btn-outline">Back to Elections</a>
+</div>
+
+<div class="card" style="margin-bottom: 3rem;">
+    <h3>Add New Candidate</h3>
+    <form action="{{ url_for('admin.candidates', eid=election.id) }}" method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div class="form-group">
+                <label for="name">Candidate Name</label>
+                <input type="text" name="name" id="name" class="form-control" required placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label for="party">Party/Affiliation</label>
+                <input type="text" name="party" id="party" class="form-control" required placeholder="e.g. Democratic Party">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="manifesto">Manifesto</label>
+            <textarea name="manifesto" id="manifesto" class="form-control" rows="3" placeholder="Candidate's vision..."></textarea>
+        </div>
+        <div class="form-group">
+            <label for="image_url">Image URL</label>
+            <input type="url" name="image_url" id="image_url" class="form-control" placeholder="https://example.com/photo.jpg">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Add Candidate</button>
+    </form>
+</div>
+
+<h3>Current Candidates</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+    {% for c in candidates %}
+    <div class="card" style="position: relative; overflow: hidden; padding: 0;">
+        <div style="background-image: url('{{ c.image_url if c.image_url else 'https://via.placeholder.com/300x200?text=No+Photo' }}'); background-size: cover; height: 200px; border-bottom: 1px solid var(--border);"></div>
+        <div style="padding: 1.5rem;">
+            <h4 style="font-size: 1.25rem;">{{ c.name }}</h4>
+            <p style="color: var(--primary); font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">{{ c.party_affiliation }}</p>
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.4;">{{ c.manifesto[:150] }}...</p>
+            
+            <form action="#" method="POST" style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); width: 100%;" disabled>Remove Candidate</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
