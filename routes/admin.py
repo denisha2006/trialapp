@@ -1,10 +1,19 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
 from db import get_db_connection
-from utils import generate_voting_token, hash_token, send_email, log_event
+from utils import generate_voting_token, hash_token, send_email, log_event, clean_image_url
 from decorators import login_required, admin_required
+import os
+from werkzeug.utils import secure_filename
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+UPLOAD_FOLDER = os.path.join('static', 'uploads', 'candidates')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @admin_bp.route('/dashboard')
 @login_required
@@ -23,8 +32,8 @@ def dashboard():
     cursor.execute("SELECT COUNT(*) as count FROM elections WHERE status = 'active'")
     active_elections_count = cursor.fetchone()['count']
     
-    cursor.execute("SELECT COUNT(*) as count FROM election_participants WHERE status = 'pending'")
-    pending_approvals = cursor.fetchone()['count']
+    cursor.execute("SELECT COUNT(*) as count FROM election_participants WHERE status = 'approved'")
+    approved_participants = cursor.fetchone()['count']
     
     # Recent Elections
     cursor.execute("SELECT * FROM elections ORDER BY created_at DESC LIMIT 5")
@@ -37,7 +46,7 @@ def dashboard():
                            total_voters=total_voters, 
                            total_votes=total_votes, 
                            active_elections_count=active_elections_count, 
-                           pending_approvals=pending_approvals,
+                           approved_participants=approved_participants,
                            recent_elections=recent_elections)
 
 @admin_bp.route('/elections')
@@ -110,12 +119,22 @@ def candidates(eid):
         name = request.form['name']
         party = request.form['party']
         manifesto = request.form['manifesto']
-        image_url = request.form['image_url']
+        image_url = request.form.get('image_url', '').strip()
+        
+        file = request.files.get('image_file')
+        if file and file.filename != '' and allowed_file(file.filename):
+            ext = file.filename.rsplit('.', 1)[1].lower()
+            filename = secure_filename(f"{eid}_{int(datetime.now().timestamp())}.{ext}")
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+            image_url = f"/static/uploads/candidates/{filename}"
+        elif image_url:
+            image_url = clean_image_url(image_url)
         
         cursor.execute("INSERT INTO candidates (election_id, name, party_affiliation, manifesto, image_url) VALUES (%s, %s, %s, %s, %s)", 
                        (eid, name, party, manifesto, image_url))
         conn.commit()
-        flash("Candidate added.", "success")
+        flash("Candidate added successfully.", "success")
         return redirect(url_for('admin.candidates', eid=eid))
     
     cursor.execute("SELECT * FROM elections WHERE id = %s", (eid,))
@@ -126,6 +145,77 @@ def candidates(eid):
     cursor.close()
     conn.close()
     return render_template('admin/candidates.html', election=election, candidates=cands)
+
+@admin_bp.route('/elections/<int:eid>/candidates/<int:cid>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_candidate(eid, cid):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM candidates WHERE id = %s AND election_id = %s", (cid, eid))
+    candidate = cursor.fetchone()
+    
+    if candidate:
+        cursor.execute("DELETE FROM candidates WHERE id = %s AND election_id = %s", (cid, eid))
+        conn.commit()
+        log_event(session.get('user_id'), 'CANDIDATE_DELETED', f"Candidate '{candidate['name']}' (ID {cid}) deleted from election ID {eid}")
+        flash(f"Candidate '{candidate['name']}' removed successfully.", "success")
+    else:
+        flash("Candidate not found.", "danger")
+        
+    cursor.close()
+    conn.close()
+    return redirect(url_for('admin.candidates', eid=eid))
+
+@admin_bp.route('/elections/<int:eid>/candidates/<int:cid>/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_candidate(eid, cid):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM candidates WHERE id = %s AND election_id = %s", (cid, eid))
+    candidate = cursor.fetchone()
+    
+    if not candidate:
+        flash("Candidate not found.", "danger")
+        cursor.close()
+        conn.close()
+        return redirect(url_for('admin.candidates', eid=eid))
+        
+    name = request.form['name']
+    party = request.form['party']
+    manifesto = request.form['manifesto']
+    image_url = request.form.get('image_url', '').strip()
+    
+    file = request.files.get('image_file')
+    if file and file.filename != '' and allowed_file(file.filename):
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = secure_filename(f"{eid}_{cid}_{int(datetime.now().timestamp())}.{ext}")
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        final_image_url = f"/static/uploads/candidates/{filename}"
+    elif image_url:
+        final_image_url = clean_image_url(image_url)
+    else:
+        final_image_url = candidate['image_url']
+        
+    cursor.execute("""
+        UPDATE candidates 
+        SET name = %s, party_affiliation = %s, manifesto = %s, image_url = %s 
+        WHERE id = %s AND election_id = %s
+    """, (name, party, manifesto, final_image_url, cid, eid))
+    conn.commit()
+    
+    log_event(session.get('user_id'), 'CANDIDATE_EDITED', f"Candidate '{name}' (ID {cid}) updated in election ID {eid}")
+    flash(f"Candidate '{name}' updated successfully.", "success")
+    
+    cursor.close()
+    conn.close()
+    return redirect(url_for('admin.candidates', eid=eid))
+
+
 
 @admin_bp.route('/elections/<int:eid>/status', methods=['POST'])
 @login_required
@@ -159,8 +249,9 @@ def update_status(eid):
                 # Check if token already exists to prevent duplicates
                 cursor.execute("SELECT id FROM voting_tokens WHERE election_id = %s AND user_id = %s", (eid, p['user_id']))
                 if not cursor.fetchone():
-                    cursor.execute("INSERT INTO voting_tokens (election_id, user_id, token_hash) VALUES (%s, %s, %s)", 
-                                   (eid, p['user_id'], hashed))
+                    expires_at = datetime.now() + timedelta(minutes=15)
+                    cursor.execute("INSERT INTO voting_tokens (election_id, user_id, token_hash, expires_at) VALUES (%s, %s, %s, %s)", 
+                                   (eid, p['user_id'], hashed, expires_at))
                     
                     # Send token via email
                     subject = f"Your Voting Token for {p['title']}"
@@ -170,6 +261,40 @@ def update_status(eid):
             conn.commit()
             log_event(session.get('user_id'), 'ELECTION_ACTIVATED', f"Election ID {eid} moved to ACTIVE phase")
             flash("Election activated! Tokens have been sent to approved voters.", "success")
+            
+    elif new_status == 'closed':
+        # Retrieve previous status and title
+        cursor.execute("SELECT status, title FROM elections WHERE id = %s", (eid,))
+        row = cursor.fetchone()
+        
+        if row and row['status'] == 'active':
+            # Send notification to voters
+            cursor.execute("""
+                SELECT u.email, u.full_name 
+                FROM election_participants ep
+                JOIN users u ON ep.user_id = u.id
+                WHERE ep.election_id = %s
+            """, (eid,))
+            participants = cursor.fetchall()
+            
+            for p in participants:
+                subject = f"Results Declared: {row['title']}"
+                body = f"Hello {p['full_name']},\n\nThe results for '{row['title']}' have been finalized and declared! You can now log in to the AuthVote platform and check the outcome.\n\nThank you for participating."
+                html = f"""
+                <div style="font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; padding: 40px; border-radius: 12px; text-align: center;">
+                    <h2 style="color: #3b82f6; margin-bottom: 20px;">Results Declared!</h2>
+                    <p style="font-size: 1.1rem; margin-bottom: 30px;">Hello {p['full_name']}, the results for <strong>{row['title']}</strong> have just been finalized and the polls are officially closed.</p>
+                    <div style="margin: 30px 0;">
+                        <span style="background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 12px 24px; border: 1px solid #3b82f6; border-radius: 6px; font-weight: 600;">Log in to view the official results</span>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #334155; margin: 30px 0;">
+                    <p style="font-size: 0.8rem; color: #64748b;">© 2026 AuthVote - Secure Polling Platform</p>
+                </div>
+                """
+                send_email(p['email'], subject, body, html=html)
+            
+            log_event(session.get('user_id'), 'ELECTION_CLOSED_NOTIFIED', f"Election ID {eid} closed and notifications sent.")
+            flash("Election closed! Notification emails have been sent to all registered participants.", "success")
 
     cursor.execute("UPDATE elections SET status = %s WHERE id = %s", (new_status, eid))
     conn.commit()
@@ -185,7 +310,7 @@ def approvals():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT ep.id, u.full_name, u.voter_id, u.email, e.title as election_title, ep.status, ep.requested_at
+        SELECT ep.id, u.full_name, u.email, e.title as election_title, ep.status, ep.requested_at
         FROM election_participants ep
         JOIN users u ON ep.user_id = u.id
         JOIN elections e ON ep.election_id = e.id
@@ -195,63 +320,6 @@ def approvals():
     cursor.close()
     conn.close()
     return render_template('admin/approvals.html', requests=reqs)
-
-@admin_bp.route('/approvals/<int:rid>/<string:action>')
-@login_required
-@admin_required
-def update_request(rid, action):
-    status = 'approved' if action == 'approve' else 'rejected'
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Get request details before update
-    cursor.execute("""
-        SELECT ep.user_id, ep.election_id, u.email, u.full_name, e.title, e.status as election_status
-        FROM election_participants ep
-        JOIN users u ON ep.user_id = u.id
-        JOIN elections e ON ep.election_id = e.id
-        WHERE ep.id = %s
-    """, (rid,))
-    req_data = cursor.fetchone()
-    
-    cursor.execute("UPDATE election_participants SET status = %s WHERE id = %s", (status, rid))
-    
-    # If approved and election is active, generate token now
-    if status == 'approved' and req_data and req_data['election_status'] == 'active':
-        raw_token = generate_voting_token(req_data['user_id'], req_data['election_id'])
-        hashed = hash_token(raw_token)
-        
-        # Check for existing token
-        cursor.execute("SELECT id FROM voting_tokens WHERE election_id = %s AND user_id = %s", 
-                       (req_data['election_id'], req_data['user_id']))
-        if not cursor.fetchone():
-            cursor.execute("INSERT INTO voting_tokens (election_id, user_id, token_hash) VALUES (%s, %s, %s)", 
-                           (req_data['election_id'], req_data['user_id'], hashed))
-            
-            # Send token with premium HTML template
-            subject = f"Your Voting Token for {req_data['title']}"
-            body = f"Hello {req_data['full_name']},\n\nYour secret voting token is: {raw_token}\n\nKeep this token safe. It is required to cast your vote."
-            html = f"""
-            <div style="font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; padding: 40px; border-radius: 12px; text-align: center;">
-                <h2 style="color: #3b82f6; margin-bottom: 20px;">AuthVote Secure Token</h2>
-                <p style="font-size: 1.1rem; margin-bottom: 30px;">Hello {req_data['full_name']}, you have been approved to vote in <strong>{req_data['title']}</strong>.</p>
-                <div style="background-color: #1e293b; padding: 20px; border: 1px solid #334155; border-radius: 8px; margin-bottom: 30px;">
-                    <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Your Secret Voting Token</p>
-                    <code style="font-size: 1.5rem; color: #fff; font-family: monospace; word-break: break-all;">{raw_token}</code>
-                </div>
-                <p style="font-size: 0.9rem; color: #94a3b8;">Copy this token and paste it into the voting booth on your dashboard. Keep it secret!</p>
-                <hr style="border: 0; border-top: 1px solid #334155; margin: 30px 0;">
-                <p style="font-size: 0.8rem; color: #64748b;">© 2026 AuthVote - Secure Polling Platform</p>
-            </div>
-            """
-            send_email(req_data['email'], subject, body, html=html)
-            
-    conn.commit()
-    log_event(session.get('user_id'), 'VOTER_DECISION', f"{status.upper()} voter ID {req_data['user_id']} for election {req_data['title']}")
-    cursor.close()
-    conn.close()
-    flash(f"Request {status}.", "success" if status == 'approved' else "warning")
-    return redirect(url_for('admin.approvals'))
 
 @admin_bp.route('/approvals/<int:rid>/resend')
 @login_required
@@ -280,11 +348,13 @@ def resend_token(rid):
         token_record = cursor.fetchone()
         
         if token_record:
-            cursor.execute("UPDATE voting_tokens SET token_hash = %s, is_used = 0 WHERE id = %s", 
-                           (hashed, token_record['id']))
+            expires_at = datetime.now() + timedelta(minutes=15)
+            cursor.execute("UPDATE voting_tokens SET token_hash = %s, is_used = 0, expires_at = %s WHERE id = %s", 
+                           (hashed, expires_at, token_record['id']))
         else:
-            cursor.execute("INSERT INTO voting_tokens (election_id, user_id, token_hash) VALUES (%s, %s, %s)", 
-                           (req_data['election_id'], req_data['user_id'], hashed))
+            expires_at = datetime.now() + timedelta(minutes=15)
+            cursor.execute("INSERT INTO voting_tokens (election_id, user_id, token_hash, expires_at) VALUES (%s, %s, %s, %s)", 
+                           (req_data['election_id'], req_data['user_id'], hashed, expires_at))
         
         # Send token with premium HTML template
         subject = f"IMPORTANT: Your New Voting Token for {req_data['title']}"
@@ -337,7 +407,7 @@ def live_monitor():
     
     # Fetch real logs
     cursor.execute("""
-        SELECT l.*, u.voter_id, u.email 
+        SELECT l.*, u.email 
         FROM system_logs l
         LEFT JOIN users u ON l.user_id = u.id
         ORDER BY l.timestamp DESC 

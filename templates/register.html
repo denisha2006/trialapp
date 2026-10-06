@@ -5,15 +5,11 @@
 {% block content %}
 <div class="auth-container">
     <div class="card">
-        <h2 style="text-align: center; margin-bottom: 2rem;">Voter Registration</h2>
+        <h2 style="text-align: center; margin-bottom: 2rem;">Registration</h2>
         <form action="{{ url_for('auth.register') }}" method="POST">
             <div class="form-group">
                 <label for="full_name">Full Name</label>
                 <input type="text" name="full_name" id="full_name" class="form-control" required placeholder="John Doe">
-            </div>
-            <div class="form-group">
-                <label for="voter_id">Voter ID Number</label>
-                <input type="text" name="voter_id" id="voter_id" class="form-control" required placeholder="VOT123456">
             </div>
             <div class="form-group">
                 <label for="email">Email Address</label>
@@ -29,6 +25,23 @@
                     <input type="password" name="confirm_password" id="confirm_password" class="form-control" required placeholder="••••••••">
                 </div>
             </div>
+
+            <!-- Identity Details -->
+            <div class="form-row" style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="id_type">ID Type</label>
+                    <select name="id_type" id="id_type" class="form-control" required>
+                        <option value="aadhaar">Aadhaar Card</option>
+                        <option value="pan">PAN Card</option>
+                        <option value="driving_license">Driving License</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1.5;">
+                    <label for="id_number">ID Number</label>
+                    <input type="text" name="id_number" id="id_number" class="form-control" required placeholder="e.g. 1234-5678-9012">
+                </div>
+            </div>
+
             <div class="form-group">
                 <label for="role">Register as</label>
                 <select name="role" id="role" class="form-control">
@@ -36,7 +49,10 @@
                     <option value="admin">Admin</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Create Account</button>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                Proceed to ID Verification
+            </button>
         </form>
         <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted);">
             Already have an account? <a href="{{ url_for('auth.login') }}" style="color: var(--primary); text-decoration: none;">Login here</a>

@@ -13,8 +13,8 @@
         <thead style="background-color: rgba(255,255,255,0.05);">
             <tr>
                 <th style="padding: 1rem;">Full Name</th>
-                <th style="padding: 1rem;">Voter ID</th>
                 <th style="padding: 1rem;">Email Address</th>
+                <th style="padding: 1rem;">Registered ID</th>
                 <th style="padding: 1rem;">Verified</th>
                 <th style="padding: 1rem;">Elections Joined</th>
                 <th style="padding: 1rem;">Joined At</th>
@@ -24,8 +24,8 @@
             {% for v in voters %}
             <tr style="border-bottom: 1px solid var(--border);">
                 <td style="padding: 1rem; font-weight: 600;">{{ v.full_name }}</td>
-                <td style="padding: 1rem; color: var(--primary);">{{ v.voter_id }}</td>
                 <td style="padding: 1rem;">{{ v.email }}</td>
+                <td style="padding: 1rem; font-family: monospace; color: var(--secondary);">{{ v.id_number or 'Unbound' }}</td>
                 <td style="padding: 1rem;">
                     {% if v.is_verified %}
                         <span style="color: var(--success);"><i class="fas fa-check-circle"></i> Yes</span>

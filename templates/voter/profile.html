@@ -14,12 +14,12 @@
             
             <div style="text-align: left; border-top: 1px solid var(--border); padding-top: 1.5rem;">
                 <div style="margin-bottom: 1rem;">
-                    <p style="font-size: 0.75rem; color: var(--text-muted);">Voter ID</p>
-                    <p style="font-weight: 600;">{{ user.voter_id }}</p>
-                </div>
-                <div style="margin-bottom: 1rem;">
                     <p style="font-size: 0.75rem; color: var(--text-muted);">Email Address</p>
                     <p style="font-weight: 600;">{{ user.email }}</p>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Registered ID Number</p>
+                    <p style="font-weight: 600; color: var(--secondary);">{{ user.id_number or 'Not Linked' }}</p>
                 </div>
                 <div>
                     <p style="font-size: 0.75rem; color: var(--text-muted);">Joined At</p>

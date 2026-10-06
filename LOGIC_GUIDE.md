@@ -16,15 +16,16 @@ AuthVote is a high-security, blockchain-inspired voting platform built with Pyth
 
 ### B. Voting Token Lifecycle (HMAC Security)
 To prevent fraud and duplicate voting, AuthVote uses a **Cryptographic Token System**:
-1.  **Request**: Voter joins an election; status set to `pending`.
-2.  **Approval**: Admin reviews and approves; the system generates a unique **HMAC-SHA256** token.
-3.  **Hashing**: Only the **hash** of the token is stored (`token_hash`), ensuring that even admins cannot see or use the raw token once it's sent.
-4.  **Regeneration**: The "Resend Token" feature automatically invalidates the old hash and generates a fresh 64-character hex string for the voter.
+1.  **Request & Approval**: Voter joins an election; status is **automatically** set to `approved`. The system instantly generates a unique **HMAC-SHA256** token if the election is active. This token is securely assigned a strict **15-minute expiration countdown**.
+2.  **Hashing**: Only the **hash** of the token is stored (`token_hash`), ensuring that even admins cannot see or use the raw token once it's sent.
+3.  **Expiration & Validation**: During the vote phase, the application verifies the token hash and explicitly requires that the 15-minute `expires_at` window has not closed.
+4.  **Regeneration**: The voter "Resend Token" mechanism automatically invalidates any old token hash, generates a fresh 64-character hex string, emails the voter, and resets their 15-minute countdown clock entirely without admin intervention.
 
-### C. Live Result Tallying
-The **Live Monitor** uses real-time aggregation:
+### C. Live Result Tallying & Blind Voting
+The **Live Monitor** uses real-time aggregation for Administrators:
 - It bypasses intermediate counters and queries the `votes` table directly for accuracy.
 - **Chart.js** horizontally visualizes candidate performance to help admins make data-driven decisions.
+- **Blind Voting Security**: Standard voters are structurally blocked via API access roles from viewing *any* results geometry while an election is 'active'. This prevents pre-bias bandwagon effects.
 
 ### D. Security & Audit Logging
 The `utils.log_event` function records every critical action:

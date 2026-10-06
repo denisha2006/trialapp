@@ -20,9 +20,8 @@ def get_db_connection():
         return None
 
 def init_db():
-    """Initializes the database by creating it and running the schema.sql script."""
+    """Initializes the database and creates required tables."""
     try:
-        # Connect to MySQL without specifying a database first
         connection = mysql.connector.connect(
             host=os.getenv('DB_HOST', 'localhost'),
             user=os.getenv('DB_USER', 'root'),
@@ -30,25 +29,19 @@ def init_db():
         )
         cursor = connection.cursor()
         
-        # Create database if not exists
         db_name = os.getenv('DB_NAME', 'secure_vote')
-        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
-        cursor.execute(f"USE {db_name}")
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}`")
+        cursor.execute(f"USE `{db_name}`")
         
-        # Run schema script
         if os.path.exists('schema.sql'):
             with open('schema.sql', 'r') as f:
                 schema_script = f.read()
-                # Split commands by semicolon to execute individually
-                commands = schema_script.split(';')
-                for command in commands:
-                    if command.strip():
-                        cursor.execute(command)
+                statements = [s.strip() for s in schema_script.split(';') if s.strip()]
+                for statement in statements:
+                    cursor.execute(statement)
             connection.commit()
-            print("Database initialized successfully.")
-        else:
-            print("schema.sql not found.")
-            
+
+        print("Database initialized successfully.")
         cursor.close()
         connection.close()
     except Error as e:

@@ -9,11 +9,14 @@ results_bp = Blueprint('results', __name__, url_prefix='/results')
 def all_results():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
+    role = session.get('role')
+    status_filter = "('active', 'closed')" if role == 'admin' else "('closed')"
+    
+    cursor.execute(f"""
         SELECT e.*, 
                (SELECT COUNT(*) FROM votes WHERE election_id = e.id) as total_votes
         FROM elections e
-        WHERE status IN ('active', 'closed')
+        WHERE status IN {status_filter}
         ORDER BY created_at DESC
     """)
     elections_list = cursor.fetchall()
@@ -31,6 +34,9 @@ def view_election(eid):
     
     if not election or election['status'] not in ['active', 'closed']:
         return "Election results not available.", 404
+        
+    if election['status'] == 'active' and session.get('role') != 'admin':
+        return "Results are hidden until the election officially closes.", 403
         
     cursor.execute("""
         SELECT c.*, 
@@ -63,6 +69,13 @@ def results_api(eid):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
+    cursor.execute("SELECT status FROM elections WHERE id = %s", (eid,))
+    election = cursor.fetchone()
+    if not election or (election['status'] == 'active' and session.get('role') != 'admin'):
+        cursor.close()
+        conn.close()
+        return jsonify({'error': 'Unauthorized'}), 403
+        
     cursor.execute("""
         SELECT c.id, c.name, COUNT(v.id) as vote_count
         FROM candidates c

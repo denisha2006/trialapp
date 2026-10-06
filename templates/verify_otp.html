@@ -1,23 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}Verify Email - AuthVote{% endblock %}
+{% block title %}Verify Registration - AuthVote{% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <div class="card">
-        <h2 style="text-align: center; margin-bottom: 1rem;">Verify Email</h2>
-        <p style="text-align: center; margin-bottom: 2rem; color: var(--text-muted);">Please enter the 6-digit code sent to <strong>{{ email }}</strong>.</p>
-        
+    <div class="card" style="text-align: center;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">✉️</div>
+        <h2 style="margin-bottom: 0.5rem;">Account Verification</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
+            A 6-digit registration verification code was sent to <strong>{{ email }}</strong>.
+        </p>
+
+        {% if id_number %}
+        <div class="alert alert-info" style="text-align: left; font-size: 0.9rem; margin-bottom: 1.5rem;">
+            ID Number <strong>{{ id_number }}</strong> will be bound to your account upon OTP confirmation.
+        </div>
+        {% endif %}
+
         <form action="{{ url_for('auth.verify_otp') }}" method="POST">
             <div class="form-group">
-                <label for="otp">OTP Code</label>
-                <input type="text" name="otp" id="otp" class="form-control" required placeholder="123456" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+                <label for="otp">Enter 6-Digit OTP</label>
+                <input type="text" name="otp" id="otp" class="form-control" maxlength="6" required placeholder="000000" style="text-align: center; font-size: 1.8rem; letter-spacing: 8px; font-weight: bold;">
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Verify</button>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                Verify & Create Account
+            </button>
         </form>
-        
-        <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted);">
-            Didn't receive the code? <a href="#" style="color: var(--primary); text-decoration: none;">Resend OTP</a>
+
+        <p style="margin-top: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+            Need to change registration details? <a href="{{ url_for('auth.register') }}" style="color: var(--primary); text-decoration: none;">Back to Registration</a>
         </p>
     </div>
 </div>

@@ -9,12 +9,20 @@
         <p style="color: var(--text-muted);">{{ election.title }} | Secure Token Authentication Required</p>
     </div>
 
+    <form action="{{ url_for('voter.resend_token', eid=election.id) }}" method="POST" id="resendForm" style="display: none;"></form>
+
     <form action="{{ url_for('voter.vote', eid=election.id) }}" method="POST" id="voteForm">
         <div class="card" style="margin-bottom: 2rem; border-color: var(--primary);">
             <div class="form-group" style="text-align: center;">
                 <label for="token">Enter Voting Token</label>
-                <input type="text" name="token" id="token" class="form-control" required placeholder="Paste your 64-character token from email" style="text-align: center; letter-spacing: 0.1rem; font-family: monospace;">
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Token was sent to your registered email when the voting phase opened.</p>
+                <input type="text" name="token" id="token" class="form-control" required placeholder="Enter your 9-character Voting Token (e.g., A1B2-C3D4)" style="text-align: center; letter-spacing: 0.1rem; font-family: monospace; text-transform: uppercase;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 0;">Token was sent to your registered email.</p>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">Token expired or lost?</p>
+                    <button type="button" class="btn btn-outline" style="padding: 0.4rem 1rem; font-size: 0.85rem;" onclick="document.getElementById('resendForm').submit();">
+                        Resend Fresh Token
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -24,7 +32,17 @@
             <label class="candidate-card" style="cursor: pointer;">
                 <input type="radio" name="candidate_id" value="{{ c.id }}" required style="display: none;">
                 <div class="card candidate-inner" style="transition: all 0.3s; border-width: 2px; padding: 0; overflow: hidden; height: 100%;">
-                    <div style="background-image: url('{{ c.image_url if c.image_url else 'https://via.placeholder.com/400x250?text=' ~ c.name }}'); background-size: cover; height: 180px;"></div>
+                    <div style="height: 180px; width: 100%; position: relative; background: #1e293b; overflow: hidden; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border);">
+                        {% if c.image_url %}
+                        <img src="{{ c.image_url }}" alt="{{ c.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        {% endif %}
+                        <div style="display: {% if c.image_url %}none{% else %}flex{% endif %}; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #94a3b8;">
+                            <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.4rem;">
+                                {{ c.name[0] | upper }}
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">{{ c.name }}</span>
+                        </div>
+                    </div>
                     <div style="padding: 1.5rem;">
                         <h4 style="font-size: 1.2rem; margin-bottom: 0.2rem;">{{ c.name }}</h4>
                         <p style="color: var(--primary); font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">{{ c.party_affiliation }}</p>

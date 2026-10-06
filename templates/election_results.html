@@ -23,30 +23,111 @@
 </div>
 {% endif %}
 
-<div class="card" style="margin-bottom: 3rem;">
-    <div id="resultsContainer">
-        {% for c in candidates %}
-        <div class="candidate-result-row" data-id="{{ c.id }}" style="margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <div>
-                    <span style="font-weight: 600; font-size: 1.1rem;">{{ c.name }}</span>
-                    <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem;">({{ c.party_affiliation }})</span>
-                </div>
-                <div style="text-align: right;">
-                    <span class="count" style="font-weight: 700;">{{ c.vote_count }}</span>
-                    <span style="color: var(--text-muted); font-size: 0.9rem;"> Votes</span>
-                </div>
-            </div>
-            
-            <div style="width: 100%; height: 24px; background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; border: 1px solid var(--border);">
-                <div class="progress-bar" style="width: {{ c.percentage }}%; height: 100%; background: var(--primary); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); position: relative;">
-                    <span class="percentage" style="position: absolute; right: 10px; top: 1px; font-size: 0.75rem; font-weight: 700; color: white;">{{ "%.1f"|format(c.percentage) }}%</span>
-                </div>
-            </div>
+<div class="card" style="margin-bottom: 3rem; background-color: var(--bg-card);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 3rem; align-items: center;">
+        <div style="position: relative; height: 350px;">
+            <canvas id="donutChart"></canvas>
         </div>
-        {% endfor %}
+        <div style="position: relative; height: 350px;">
+            <canvas id="barChart"></canvas>
+        </div>
     </div>
 </div>
+
+<script>
+    const chartLabels = [{% for c in candidates %}"{{ c.name }}",{% endfor %}];
+    let chartVotes = [{% for c in candidates %}{{ c.vote_count }},{% endfor %}];
+    let chartPercentages = [{% for c in candidates %}{{ c.percentage }},{% endfor %}];
+    
+    // Theme setup based on AuthVote CSS variables mapping
+    const brandPrimary = '#3b82f6';
+    const bgDark = '#0f172a';
+    const bgCard = '#1e293b';
+    const textWhite = '#f8fafc';
+    const textMuted = '#94a3b8';
+    const border = 'rgba(255, 255, 255, 0.1)';
+    
+    // Generate vibrant color palette based on primary brand color
+    const colors = chartLabels.map((_, i) => `hsl(${217 + (i * 50)}, 90%, 65%)`);
+
+    Chart.defaults.color = textMuted;
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    // 1. Donut Chart (Percentage visualization)
+    const donutCtx = document.getElementById('donutChart').getContext('2d');
+    const myDonutChart = new Chart(donutCtx, {
+        type: 'doughnut',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                data: chartPercentages,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: bgCard,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: textWhite, padding: 20 } },
+                tooltip: {
+                    backgroundColor: bgDark,
+                    titleColor: textWhite,
+                    bodyColor: textWhite,
+                    borderColor: brandPrimary,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) { return ` ${context.label}: ${Number(context.raw).toFixed(1)}%`; }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Bar Chart (Absolute candidate comparison)
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    const myBarChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Total Votes',
+                data: chartVotes,
+                backgroundColor: colors,
+                borderRadius: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    grid: { color: border },
+                    ticks: { precision: 0 }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: textWhite }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: bgDark,
+                    titleColor: textWhite,
+                    bodyColor: textWhite,
+                    borderColor: brandPrimary,
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+</script>
 
 {% if election.status == 'active' %}
 <script>
@@ -58,14 +139,21 @@
             .then(data => {
                 document.getElementById('totalVotes').textContent = data.total_votes;
                 
-                data.candidates.forEach(c => {
-                    const row = document.querySelector(`.candidate-result-row[data-id="${c.id}"]`);
-                    if (row) {
-                        row.querySelector('.count').textContent = c.vote_count;
-                        row.querySelector('.progress-bar').style.width = `${c.percentage}%`;
-                        row.querySelector('.percentage').textContent = `${c.percentage.toFixed(1)}%`;
-                    }
+                const newVotes = chartLabels.map(label => {
+                    const cand = data.candidates.find(c => c.name === label);
+                    return cand ? cand.vote_count : 0;
                 });
+                
+                const newPercents = chartLabels.map(label => {
+                    const cand = data.candidates.find(c => c.name === label);
+                    return cand ? cand.percentage : 0;
+                });
+                
+                myDonutChart.data.datasets[0].data = newPercents;
+                myDonutChart.update({ preservation: true });
+                
+                myBarChart.data.datasets[0].data = newVotes;
+                myBarChart.update({ preservation: true });
             })
             .catch(err => console.error("Refresh failed:", err));
     }

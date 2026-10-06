@@ -1,13 +1,13 @@
--- Database Schema for AuthVote Platform
+-- Clean Normalized Database Schema for AuthVote Platform
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
-    voter_id VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('voter', 'admin') DEFAULT 'voter',
     is_verified TINYINT(1) DEFAULT 0,
+    id_number VARCHAR(50),
     otp VARCHAR(6),
     otp_expires_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS elections (
 
 CREATE TABLE IF NOT EXISTS candidates (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    election_id INT,
+    election_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     party_affiliation VARCHAR(255),
     manifesto TEXT,
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS candidates (
 
 CREATE TABLE IF NOT EXISTS election_participants (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    election_id INT,
-    user_id INT,
+    election_id INT NOT NULL,
+    user_id INT NOT NULL,
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (election_id, user_id),
@@ -46,10 +46,11 @@ CREATE TABLE IF NOT EXISTS election_participants (
 
 CREATE TABLE IF NOT EXISTS voting_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    election_id INT,
-    user_id INT,
+    election_id INT NOT NULL,
+    user_id INT NOT NULL,
     token_hash VARCHAR(255) UNIQUE NOT NULL,
     is_used TINYINT(1) DEFAULT 0,
+    expires_at DATETIME,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (election_id, user_id),
     FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE,
@@ -58,15 +59,16 @@ CREATE TABLE IF NOT EXISTS voting_tokens (
 
 CREATE TABLE IF NOT EXISTS votes (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    election_id INT,
-    user_id INT,
-    candidate_id INT,
+    election_id INT NOT NULL,
+    user_id INT NOT NULL,
+    candidate_id INT NOT NULL,
     cast_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (election_id, user_id),
-    FOREIGN KEY (election_id) REFERENCES elections(id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (candidate_id) REFERENCES candidates(id)
+    FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS system_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
@@ -76,4 +78,14 @@ CREATE TABLE IF NOT EXISTS system_logs (
     anomaly DECIMAL(3,2) DEFAULT 0.00,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS mfa_audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    step_name VARCHAR(50) NOT NULL,
+    status ENUM('success', 'failed') NOT NULL,
+    ip_address VARCHAR(50),
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

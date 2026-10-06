@@ -31,7 +31,7 @@
         <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: monospace; font-size: 0.85rem;">
             <thead style="background-color: rgba(255,255,255,0.02);">
                 <tr>
-                    <th style="padding: 1rem;">User ID</th>
+                    <th style="padding: 1rem;">User</th>
                     <th style="padding: 1rem;">Action</th>
                     <th style="padding: 1rem;">Description</th>
                     <th style="padding: 1rem;">Timestamp</th>
@@ -41,7 +41,7 @@
             <tbody id="traffic-feed">
                 {% for log in logs %}
                 <tr style="border-bottom: 1px solid var(--border); background-color: {% if log.anomaly > 0.6 %}rgba(239, 68, 68, 0.05){% else %}transparent{% endif %};">
-                    <td style="padding: 1rem; color: var(--primary);">{{ log.voter_id if log.voter_id else 'SYSTEM' }}</td>
+                    <td style="padding: 1rem; color: var(--primary);">{{ log.email if log.email else 'SYSTEM' }}</td>
                     <td style="padding: 1rem;">
                         <span style="color: {% if log.anomaly > 0.6 %}var(--danger){% else %}var(--success){% endif %};">[{{ log.action }}]</span>
                     </td>

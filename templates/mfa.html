@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Factor Authentication | AuthVote{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Multi-Factor Authentication</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Verify your identity to access AuthVote</p>
+        </div>
+
+        <!-- Step Progress Indicator -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; position: relative;">
+            <div style="position: absolute; top: 50%; left: 10%; right: 10%; height: 3px; background: #334155; z-index: 1; transform: translateY(-50%);"></div>
+            <div id="progress-line" style="position: absolute; top: 50%; left: 10%; width: 0%; height: 3px; background: var(--primary); z-index: 2; transform: translateY(-50%); transition: width 0.4s ease;"></div>
+            
+            <div id="step1-badge" style="z-index: 3; background: var(--primary); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; transition: background 0.3s;">1</div>
+            <div id="step2-badge" style="z-index: 3; background: #334155; color: #94a3b8; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; transition: background 0.3s;">2</div>
+        </div>
+
+        <!-- Dynamic Alert Box -->
+        <div id="mfa-alert" class="alert alert-danger" style="display: none; margin-bottom: 1.5rem;"></div>
+
+        <!-- PANEL 1: Identity + Captcha Verification -->
+        <form id="panel1-form" onsubmit="handlePanel1Submit(event)">
+            <h3 style="font-size: 1.1rem; color: var(--secondary); margin-bottom: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <span>🛡️</span> Step 1: Identity & Captcha Verification
+            </h3>
+
+            <!-- ID Number -->
+            <div class="form-group">
+                <label for="epic_id">ID Number</label>
+                <input type="text" id="epic_id" name="epic_id" class="form-control" value="{{ id_number }}" placeholder="e.g. 1234-5678-9012" required>
+            </div>
+
+            <!-- Dynamic Captcha -->
+            <div class="form-group">
+                <label>Captcha Verification</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 0.5rem;">
+                    <div id="captcha-box" style="flex: 1; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; font-family: monospace; font-size: 1.4rem; font-weight: bold; letter-spacing: 6px; color: var(--secondary); user-select: none; text-decoration: line-through;">------</div>
+                    <button type="button" onclick="loadCaptcha()" class="btn btn-outline" style="padding: 0.75rem;">🔄</button>
+                </div>
+                <input type="text" id="captcha_input" name="captcha" class="form-control" placeholder="Enter characters above" required style="text-transform: uppercase;">
+            </div>
+
+            <button type="submit" id="panel1-submit" class="btn btn-primary" style="width: 100%;">
+                Verify Identity & Request OTP
+            </button>
+        </form>
+
+        <!-- PANEL 2: OTP Confirmation -->
+        <form id="panel2-form" onsubmit="handlePanel2Submit(event)" style="display: none;">
+            <h3 style="font-size: 1.1rem; color: var(--secondary); margin-bottom: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <span>✉️</span> Step 2: One-Time Password (OTP)
+            </h3>
+            
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                A 6-digit verification code was sent to your registered email address.
+            </p>
+
+            <div class="form-group">
+                <label for="otp_input">6-Digit OTP</label>
+                <input type="text" id="otp_input" name="otp" maxlength="6" placeholder="000000" required class="form-control" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px; font-weight: bold;">
+            </div>
+
+            <button type="submit" id="panel2-submit" class="btn btn-primary" style="width: 100%;">
+                Complete Authentication
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    loadCaptcha();
+});
+
+function showAlert(msg, isSuccess = false) {
+    const alertBox = document.getElementById('mfa-alert');
+    if (!alertBox) {
+        alert(msg);
+        return;
+    }
+    alertBox.style.display = 'block';
+    alertBox.className = isSuccess ? 'alert alert-success' : 'alert alert-danger';
+    alertBox.innerText = msg;
+}
+
+function clearAlert() {
+    const alertBox = document.getElementById('mfa-alert');
+    if (alertBox) {
+        alertBox.style.display = 'none';
+    }
+}
+
+async function loadCaptcha() {
+    try {
+        const res = await fetch('/api/v1/auth/mfa/captcha');
+        const data = await res.json();
+        if (data.captcha) {
+            document.getElementById('captcha-box').innerText = data.captcha;
+            document.getElementById('captcha_input').value = '';
+        }
+    } catch (err) {
+        console.error('Failed to load captcha:', err);
+    }
+}
+
+async function handlePanel1Submit(e) {
+    e.preventDefault();
+    clearAlert();
+
+    const epicId = document.getElementById('epic_id').value;
+    const captcha = document.getElementById('captcha_input').value;
+
+    const submitBtn = document.getElementById('panel1-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Verifying...';
+
+    try {
+        const res = await fetch('/api/v1/auth/mfa/verify-panel1', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                epic_id: epicId,
+                captcha: captcha
+            })
+        });
+
+        const data = await res.json();
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Verify Identity & Request OTP';
+
+        if (data.success) {
+            // Transition to Panel 2 (OTP)
+            document.getElementById('panel1-form').style.display = 'none';
+            document.getElementById('panel2-form').style.display = 'block';
+            
+            // Update step indicators
+            document.getElementById('progress-line').style.width = '100%';
+            document.getElementById('step2-badge').style.background = 'var(--primary)';
+            document.getElementById('step2-badge').style.color = 'white';
+
+            showAlert(data.message || 'Identity verified! Please enter the 6-digit OTP code sent to your email.', true);
+        } else {
+            showAlert(data.error || 'Verification failed.');
+            loadCaptcha();
+        }
+    } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Verify Identity & Request OTP';
+        showAlert('Network or system error occurred during verification.');
+    }
+}
+
+async function handlePanel2Submit(e) {
+    e.preventDefault();
+    clearAlert();
+
+    const otpVal = document.getElementById('otp_input').value.trim();
+    const submitBtn = document.getElementById('panel2-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Verifying OTP...';
+
+    try {
+        // Step A: Verify OTP
+        const otpRes = await fetch('/api/v1/auth/mfa/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ otp: otpVal })
+        });
+        const otpData = await otpRes.json();
+
+        if (!otpData.success) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Complete Authentication';
+            showAlert(otpData.error || 'Invalid OTP code.');
+            return;
+        }
+
+        // Step B: Generate Session Token & Promote Session
+        const tokenRes = await fetch('/api/v1/auth/token/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const tokenData = await tokenRes.json();
+
+        if (tokenData.success) {
+            showAlert('Authentication successful! Redirecting to dashboard...', true);
+            setTimeout(() => {
+                window.location.href = tokenData.redirect || '/';
+            }, 800);
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Complete Authentication';
+            showAlert(tokenData.error || 'Session token generation failed.');
+        }
+
+    } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Complete Authentication';
+        showAlert('System error occurred during authentication.');
+    }
+}
+</script>
+{% endblock %}

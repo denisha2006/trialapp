@@ -13,7 +13,7 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
+    app.secret_key = os.getenv('SECRET_KEY', 'SECUREVOTE_SESSION_SECRET_99!')
     
     # Flask-Mail Configuration
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
@@ -40,7 +40,7 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    # Initialize database on first run
+    # Initialize database on startup
     init_db()
     
     app = create_app()

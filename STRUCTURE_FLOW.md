@@ -51,13 +51,14 @@ graph TD
 To ensure absolute security, the flow of a single vote involves multiple handshakes between the database and the cryptographic utilities.
 
 ### Sequence Flow
-1. **Request Phase**: A voter clicks "Join" (`voter.py`). A record is created in `election_participants` with status `pending`.
-2. **Approval Phase**: Admin reviews the request (`admin.py`). On approval, the system triggers `generate_voting_token` (in `utils.py`).
+1. **Join Phase**: A voter clicks "Join" (`voter.py`). The voter is automatically `approved` and their record is updated in `election_participants`.
+2. **Token Generation Phase**: The system instantly triggers `generate_voting_token` (in `utils.py`) if the election is active, securely attaching an `expires_at` timestamp exacted to +15 minutes.
 3. **Execution Phase (Voter)**:
     - Voter enters their raw token on the voting page (`voter.py`).
     - The system hashes the input with `hash_token`.
-    - It compares the input hash against the `token_hash` in the `voting_tokens` table.
-4. **Finalization Phase**: If valid, the vote is inserted into the `votes` table, and the token is marked as `is_used` to prevent replay attacks.
+    - It compares the input hash against the `token_hash` in the `voting_tokens` table and explicitly checks `expires_at > NOW()`.
+4. **Finalization Phase**: If valid, the vote is inserted into the `votes` table, and the token is marked as `is_used` to prevent replay attacks. The voter is safely redirected to the dashboard (results hidden).
+5. **Recovery (If Expired)**: The user clicks the self-service 'Resend' route internally looping Step 2 without needing an administrator's interaction.
 
 ---
 

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="auth-container">
     <div class="card">
-        <h2 style="text-align: center; margin-bottom: 2rem;">Voter Login</h2>
+        <h2 style="text-align: center; margin-bottom: 2rem;">Login</h2>
         <form action="{{ url_for('auth.login') }}" method="POST">
             <div class="form-group">
                 <label for="email">Email Address</label>
@@ -15,7 +15,26 @@
                 <label for="password">Password</label>
                 <input type="password" name="password" id="password" class="form-control" required placeholder="••••••••">
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Login</button>
+
+            <!-- Identity Details -->
+            <div class="form-row" style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="id_type">ID Type</label>
+                    <select name="id_type" id="id_type" class="form-control" required>
+                        <option value="aadhaar">Aadhaar Card</option>
+                        <option value="pan">PAN Card</option>
+                        <option value="driving_license">Driving License</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1.5;">
+                    <label for="id_number">ID Number</label>
+                    <input type="text" name="id_number" id="id_number" class="form-control" required placeholder="e.g. 1234-5678-9012">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                Proceed to Identity MFA
+            </button>
         </form>
         <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted);">
             Don't have an account? <a href="{{ url_for('auth.register') }}" style="color: var(--primary); text-decoration: none;">Register here</a>
